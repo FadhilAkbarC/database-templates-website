@@ -1,0 +1,58 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TemplateType {
+  CODE
+  IDEA
+  STORY
+  OTHER
+}
+
+model User {
+  id            String         @id @default(cuid())
+  username      String         @unique
+  displayName   String
+  templates     Template[]
+  contributions Contribution[] @relation("Contributor")
+  createdAt     DateTime       @default(now())
+}
+
+model Template {
+  id             String         @id @default(cuid())
+  slug           String         @unique
+  title          String
+  summary        String
+  content        String
+  type           TemplateType
+  tags           String[]
+  featured       Boolean        @default(false)
+  ownerId        String
+  owner          User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  searchDocument String
+  contributions  Contribution[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([featured])
+  @@index([createdAt])
+}
+
+model Contribution {
+  id         String   @id @default(cuid())
+  message    String
+  status     String   @default("PENDING")
+  templateId String
+  userId     String
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user       User     @relation("Contributor", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([templateId, createdAt])
+}
